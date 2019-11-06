@@ -37,12 +37,12 @@ pe "docker images"
 pe "docker network create kong-net"
 pe "docker run -d --name kong-database --network=kong-net -p 5432:5432 -e \"POSTGRES_USER=kong\" -e \"POSTGRES_DB=kong\" postgres:9.6"
 pe "docker ps"
-pe "docker run --rm --network=kong-net -e 'KONG_DATABASE=postgres' -e 'KONG_PG_HOST=kong-database' kong:latest kong migrations bootstrap"
+pe "docker run --rm --network=kong-net -e \"KONG_DATABASE=postgres\" -e \"KONG_PG_HOST=kong-database\" kong:latest kong migrations bootstrap"
 pe "docker ps"
 pe "curl localhost:8001"
 
 # KONGA
-pe "docker run -p 1337:1337 --network kong-net --name konga  -e "TOKEN_SECRET=chavesecreta" -d pantsel/konga
+pe "docker run -p 1337:1337 --network kong-net --name konga  -e \"TOKEN_SECRET=chavesecreta\" -d pantsel/konga
 pe "docker ps"
 
 # Configurar KONGA
