@@ -38,8 +38,9 @@ pe "docker network create kong-net"
 pe "docker run -d --name kong-database --network=kong-net -p 5432:5432 -e \"POSTGRES_USER=kong\" -e \"POSTGRES_DB=kong\" postgres:9.6"
 pe "docker ps"
 pe "docker run --rm --network=kong-net -e \"KONG_DATABASE=postgres\" -e \"KONG_PG_HOST=kong-database\" kong:latest kong migrations bootstrap"
+pe "docker run -d --name kong --network=kong-net -e \”KONG_DATABASE=postgres\” -e \”KONG_PG_HOST=kong-database\” -e \”KONG_PROXY_ACCESS_LOG=/dev/stdout\” -e \”KONG_ADMIN_ACCESS_LOG=/dev/stdout\” -e \”KONG_PROXY_ERROR_LOG=/dev/stderr\” -e \”KONG_ADMIN_ERROR_LOG=/dev/stderr\” -e \”KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl\” -p 8000:8000 -p 8443:8443 -p 8001:8001 -p 8444:8444 kong:latest"
 pe "docker ps"
-pe "curl localhost:8001"
+pe "curl http://localhost:8001"
 
 # KONGA
 pe "docker run -p 1337:1337 --network kong-net --name konga  -e \"TOKEN_SECRET=chavesecreta\" -d pantsel/konga
