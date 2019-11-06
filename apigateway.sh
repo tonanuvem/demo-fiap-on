@@ -20,7 +20,7 @@
 #
 # see http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/bash-prompt-escape-sequences.html for escape sequences
 #
-DEMO_PROMPT="${RED}[node 1] ${GREEN}(local) ${CYAN}root@192.168.0.18 ${PURPLE}\w \n$"
+DEMO_PROMPT="${RED}[node 1] ${GREEN}(local) ${CYAN}root@192.168.0.18 ${PURPLE}\w {WHITE}$"
 
 # hide the evidence
 clear
