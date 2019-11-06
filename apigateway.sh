@@ -43,10 +43,11 @@ pe "docker ps"
 pe "curl http://localhost:8001"
 
 # KONGA
-pe "docker run -p 1337:1337 --network kong-net --name konga  -e \"TOKEN_SECRET=chavesecreta\" -d pantsel/konga
+pe "docker run -p 1337:1337 --network kong-net --name konga  -e \"TOKEN_SECRET=chavesecreta\" -d pantsel/konga"
 pe "docker ps"
 
 # Configurar KONGA
+p "cat \"vamos configurar o KONGA... rodando na porta 1337\""
 
 # Chamar as APIs
 pe "curl -i -X POST --url http://localhost:8001/services/ --data 'name=exemplo' --data 'url=http://mockbin.org'"
