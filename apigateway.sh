@@ -51,6 +51,24 @@ p "cat \"vamos configurar o KONGA... rodando na porta 1337\""
 
 # Chamar as APIs
 pe "curl -i -X POST --url http://localhost:8001/services/ --data 'name=exemplo' --data 'url=http://mockbin.org'"
+p ""
+pe "curl -i -X POST --url http://localhost:8001/services/exemplo/routes --data 'hosts[]=mockbin.service'"
+p ""
+pe "curl -i -X POST --url http://localhost:8000/echo --header 'Host: mockbin.service' -d {\"chave\":\"valor\"}"
+p ""
+pe "curl -i -X POST --url http://localhost:8001/services/exemplo/plugins/ --data 'name=key-auth'"
+p ""
+pe "curl -i -X POST --url http://localhost:8000/delay/2000 --header 'Host: mockbin.service'"
+p ""
+pe "curl -i -X POST --url http://localhost:8001/consumers/ --data \"username=Aluno\""
+p ""
+pe "curl -i -X POST --url http://localhost:8001/consumers/Aluno/key-auth/ --data 'key=fiapsenha'"
+p ""
+pe "curl -i -X GET --url http://localhost:8000/delay/2000 --header 'Host: mockbin.service' --header \"apikey: fiapsenha\""
+
+
+
+
 
 #p "cat \"something you dont want to really run\""
 # put your demo awesomeness here
