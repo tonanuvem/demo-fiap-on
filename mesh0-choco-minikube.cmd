@@ -2,3 +2,4 @@
 choco install minikube kubernetes-helm curl wget
 minikube start --memory=12288 --cpus=4 --kubernetes-version=v1.14.2 --vm-driver=virtualbox
 wget https://github.com/istio/istio/releases/download/1.3.0/istio-1.3.0-win.zip
+7z x istio-1.3.0-win.zip
