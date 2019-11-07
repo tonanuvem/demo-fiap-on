@@ -27,7 +27,7 @@ clear
 
 # Microservice de Clientes
 
-pe "git clone https://github.com/tonanuvem/clientes-microservice-mongodb.git""
+pe "git clone https://github.com/tonanuvem/clientes-microservice-mongodb.git"
 pe "docker-compose up -d"
 pe "docker ps"
 
