@@ -25,7 +25,7 @@ DEMO_PROMPT="\r${RED}[\H] ${GREEN}(local) ${CYAN}root@192.168.0.18 ${PURPLE}\w $
 # hide the evidence
 clear
 
-pe "docker pull nginx"
+# pe "docker pull nginx"
 pe "docker pull postgres:9.6"
 pe "docker pull kong"
 pe "docker pull pantsel/konga"
