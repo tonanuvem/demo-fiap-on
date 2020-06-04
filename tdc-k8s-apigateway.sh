@@ -21,7 +21,7 @@
 # see http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/bash-prompt-escape-sequences.html for escape sequences
 #
 # DEMO_PROMPT="\r${RED}[\H] ${GREEN}(local) ${CYAN}root@192.168.0.18 ${PURPLE}\w ${WHITE}$ "
-DEMO_PROMPT="\r${WHITE}ubuntu@OSBOXES:\w $ "
+DEMO_PROMPT="\r${WHITE}andre@cloudshell:${CYAN}~ ${YELLOW}(onyx-principle-267820)\w ${WHITE}$ "
 
 # hide the evidence
 clear
@@ -35,6 +35,15 @@ CLUSTER=gke-fiap
 
 # Criar um cluster de dois nós:
 gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --cluster-version=latest
+
+# Istio cluster com pelo menos 4 nós para fornecer recursos suficientes:
+#gcloud beta container clusters create $CLUSTER \
+#    --addons=Istio --istio-config=auth=MTLS_STRICT \
+#    --cluster-version=latest \
+#    --machine-type=n1-standard-2 \
+#    --num-nodes=4 --zone $ZONE
+#kubectl label namespace NAMESPACE istio-injection=enabled
+#kubectl get service -n istio-system#
 
 # Verificar as 2 instâncias e os pods do namespace kube-system:
 gcloud container clusters get-credentials $CLUSTER --zone $ZONE
@@ -54,14 +63,78 @@ kubectl create -f demo-weaveworks-socks.yaml
 kubectl get svc -n sock-shop
 kubectl get all -n sock-shop
 
-# Google sugere criar um cluster com pelo menos 4 nós ao usar o Istio para fornecer recursos suficientes:
-gcloud beta container clusters create $CLUSTER \
-    --addons=Istio --istio-config=auth=MTLS_STRICT \
-    --cluster-version=latest \
-    --machine-type=n1-standard-2 \
-    --num-nodes=4 --zone $ZONE
-kubectl label namespace NAMESPACE istio-injection=enabled
-kubectl get service -n istio-system
+# Executar a aplicação HTTPBIN
+kubectl apply -f https://bit.ly/k8s-httpbin
+
+# Executar a aplicação ECHO
+kubectl apply -f https://bit.ly/echo-service
+
+# https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-kongplugin-resource.md
+
+# Setup Ingress rules
+# Let's expose these services outside the Kubernetes cluster by defining Ingress rules.
+echo '
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: demo
+  annotations:
+    konghq.com/strip-path: "true"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /foo
+        backend:
+          serviceName: httpbin
+          servicePort: 80
+      - path: /bar
+        backend:
+          serviceName: echo
+          servicePort: 80
+' | kubectl apply -f -
+
+# Let's test these endpoints:
+curl -i $PROXY_IP/foo/status/200
+curl -i $PROXY_IP/bar
+
+# https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-consumer-credential-resource.md
+# Let's add a KongPlugin resource for authentication on the httpbin service:
+echo "apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: httpbin-auth
+plugin: key-auth
+" | kubectl apply -f -
+kubectl patch service httpbin -p '{"metadata":{"annotations":{"konghq.com/plugins":"httpbin-auth"}}}'
+
+# Let's test these endpoints: agora o httpbin deve receber HTTP/1.1 401 Unauthorized
+curl -i $PROXY_IP/foo/status/200
+curl -i $PROXY_IP/bar
+
+# Let's create a KongConsumer resource:
+$ echo "apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: harry
+username: harry" | kubectl apply -f -
+
+# Provision an API-key associated with this consumer so that we can pass the authentication
+kubectl create secret generic harry-apikey  \
+  --from-literal=kongCredType=key-auth  \
+  --from-literal=key=my-sooper-secret-key
+  
+# Associate this API-key with the consumer we created previously.
+echo "apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: harry
+username: harry
+credentials:
+- harry-apikey" | kubectl apply -f -
+
+# Use the API key to pass authentication:
+curl -I $PROXY_IP/foo -H 'apikey: my-sooper-secret-key'
 
 # ---------
 
@@ -74,13 +147,11 @@ pe "docker images"
 
 # KONG
 
-pe "docker network create kong-net"
-pe "docker run -d --name kong-database --network=kong-net -p 5432:5432 -e \"POSTGRES_USER=kong\" -e \"POSTGRES_DB=kong\" postgres:9.6"
-pe "docker ps"
-pe "docker run --rm --network=kong-net -e \"KONG_DATABASE=postgres\" -e \"KONG_PG_HOST=kong-database\" kong:latest kong migrations bootstrap"
-pe "docker run -d --name kong --network=kong-net -e \"KONG_DATABASE=postgres\" -e \"KONG_PG_HOST=kong-database\" -e \"KONG_PROXY_ACCESS_LOG=/dev/stdout\" -e \"KONG_ADMIN_ACCESS_LOG=/dev/stdout\" -e \"KONG_PROXY_ERROR_LOG=/dev/stderr\" -e \"KONG_ADMIN_ERROR_LOG=/dev/stderr\" -e \"KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl\" -p 8000:8000 -p 8443:8443 -p 8001:8001 -p 8444:8444 kong:latest"
-pe "docker ps"
-pe "curl http://localhost:8001"
+pe "kubectl apply -f https://bit.ly/kong-ingress-dbless"
+pe "kubectl get svc -n kong"
+export PROXY_IP=$(kubectl get service/servicename -o jsonpath='{.spec.clusterIP}')
+export PROXY_IP=$(kubectl get svc <your-service> -o yaml | grep ip)
+pe "curl -i $PROXY_IP"
 p ""
 
 # KONGA
