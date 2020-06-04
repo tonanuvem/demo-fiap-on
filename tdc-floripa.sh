@@ -63,8 +63,8 @@ kubectl get svc -n sock-shop
 
 ########## KONG
 
-pe "kubectl apply -f https://bit.ly/kong-ingress-dbless"
-pe "kubectl get svc -n kong"
+kubectl apply -f https://bit.ly/kong-ingress-dbless
+kubectl get svc -n kong
 #export PROXY_IP=$(kubectl get service/servicename -o jsonpath='{.spec.clusterIP}')
 #export PROXY_IP=$(kubectl get svc <your-service> -o yaml | grep ip)
 export PROXY_IP=$(kubectl get -o jsonpath="{.status.loadBalancer.ingress[0].ip}" service -n kong kong-proxy)
@@ -108,23 +108,41 @@ spec:
 
 # https://discuss.konghq.com/t/how-to-use-kongingress-to-redirect-to-different-backend-path/3848
 echo '
+apiVersion: configuration.konghq.com/v1
+kind: KongIngress
+metadata:
+  name: kongingress-loja
+  namespace: sock-shop
+proxy:
+  path: /loja
+route:
+  strip_path: true
+' | kubectl apply -f -
+
+echo '
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: demo-loja
+  name: ingress-loja
   namespace: sock-shop
   annotations:
     konghq.com/strip-path: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    configuration.konghq.com: kongingress-loja
 spec:
   rules:
   - http:
       paths:
+      - path: /
+        backend:
+          serviceName: front-end
+          servicePort: 80
       - path: /loja
         backend:
           serviceName: front-end
           servicePort: 80
 ' | kubectl apply -f -
+
+# kubectl patch -n sock-shop service front-end -p '{"metadata":{"annotations":{"configuration.konghq.com":"kongingress-loja"}}}'
 
 # Let's test these endpoints:
 curl -i $PROXY_IP/httpbin/status/200
