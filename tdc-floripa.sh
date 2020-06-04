@@ -26,7 +26,6 @@ DEMO_PROMPT="\r${WHITE}andre@cloudshell:${CYAN}~ ${YELLOW}(onyx-principle-267820
 # hide the evidence
 clear
 
-
 #	Definir as variáveis de ambiente:
 REGION=us-central1
 ZONE=${REGION}-b
@@ -36,6 +35,10 @@ CLUSTER=gke-tdc-floripa
 # Criar um cluster de dois nós:
 gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --cluster-version=latest
 
+# HELM
+# curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+# chmod 700 get_helm.sh
+# ./get_helm.sh
 # Istio cluster com pelo menos 4 nós para fornecer recursos suficientes:
 #gcloud beta container clusters create $CLUSTER \
 #    --addons=Istio --istio-config=auth=MTLS_STRICT \
