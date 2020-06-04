@@ -39,17 +39,37 @@ gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --clust
 # curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 # chmod 700 get_helm.sh
 # ./get_helm.sh
+#
 # KONG
-# helm install kong --set service.exposeAdmin=true --set service.type=LoadBalance bitnami/kong
+# helm install kong --set service.exposeAdmin=true --set service.type=LoadBalance --namespace kong bitnami/kong
 # kubectl get svc
 # kubectl edit svc kong-kong
 # verificar type: LoadBalancer
+# 
+#  Access the Kong proxy by using the following commands
+#    echo "Browse to http://127.0.0.1:8000"
+#    kubectl port-forward svc/my-release-kong 8080:80 &
+#  Access the Kong admin by using the following commands
+#    echo "Browse to http://127.0.0.1:8001"
+#    kubectl port-forward svc/my-release-kong 8001:8001 &
+#     The Kong Ingress Controller was deployed as part of the Kong pods. The following objects are available in the Kubernetes API:
+#     kubectl get kongconsumers
+#     kubectl get kongcredentials
+#  name: my-release-kong
+#     kubectl get kongingresses
+#     kubectl get kongplugins
+# If you want to upgrade the installation you will need to re-set the database credentials. Execute the following command
+#  kubectl get secret --namespace default my-release-postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode
+#
 # KONGA
 # git clone https://github.com/pantsel/konga.git
 # cd konga/charts/konga/
-# helm install konga -f ./values.yaml ../konga --wait
+# helm install konga -f ./values.yaml ../konga --namespace kong --wait
 # kubectl edit svc konga
 # verificar type: LoadBalancer
+# export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=konga,app.kubernetes.io/instance=konga" -o jsonpath="{.items[0].metadata.name}")
+# echo "Visit http://127.0.0.1:8080 to use your application"
+# kubectl port-forward $POD_NAME 8080:80
 
 # Istio cluster com pelo menos 4 nós para fornecer recursos suficientes:
 #gcloud beta container clusters create $CLUSTER \
