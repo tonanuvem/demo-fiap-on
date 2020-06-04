@@ -302,7 +302,8 @@ gcloud container clusters delete $CLUSTER --zone $ZONE
 
 
 
-
+# blue green e canary:
+# https://docs.konghq.com/2.0.x/loadbalancing/
 
 # ---------
 
