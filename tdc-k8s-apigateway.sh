@@ -79,7 +79,7 @@ kubectl apply -f https://bit.ly/k8s-httpbin
 # Executar a aplicação ECHO
 kubectl apply -f https://bit.ly/echo-service
 
-# https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-kongplugin-resource.md
+### https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-kongplugin-resource.md
 
 # Setup Ingress rules
 # Let's expose these services outside the Kubernetes cluster by defining Ingress rules.
@@ -108,7 +108,7 @@ spec:
 curl -i $PROXY_IP/foo/status/200
 curl -i $PROXY_IP/bar
 
-# https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-consumer-credential-resource.md
+### https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-consumer-credential-resource.md
 # Let's add a KongPlugin resource for authentication on the httpbin service:
 echo "apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
@@ -146,8 +146,8 @@ credentials:
 # Use the API key to pass authentication:
 curl -I $PROXY_IP/foo -H 'apikey: my-sooper-secret-key'
 
-# https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/configure-acl-plugin.md
-# Add JWT authentication to the service
+### https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/configure-acl-plugin.md
+### Add JWT authentication to the service
 echo "
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
@@ -177,6 +177,44 @@ spec:
 
 # Now it will require a valid JWT and the consumer for the JWT to be associate with the right ACL. HTTP/1.1 401 Unauthorized
 curl -i --data "foo=bar" -X POST $PROXY_IP/post
+
+### https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-external-service.md
+### Expose an external application
+
+# Create a Kubernetes service
+echo "
+kind: Service
+apiVersion: v1
+metadata:
+  name: proxy-to-httpbin
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+  type: ExternalName
+  externalName: httpbin.org
+" | kubectl create -f -
+
+# Create an Ingress to expose the service at the path /foo
+echo '
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: proxy-from-k8s-to-httpbin
+  annotations:
+    konghq.com/strip-path: "true"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /externo
+        backend:
+          serviceName: proxy-to-httpbin
+          servicePort: 80
+' | kubectl create -f -
+
+# Test the service
+curl -i $PROXY_IP/externo
 
 
 
