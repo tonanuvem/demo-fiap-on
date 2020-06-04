@@ -39,6 +39,18 @@ gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --clust
 # curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 # chmod 700 get_helm.sh
 # ./get_helm.sh
+# KONG
+# helm install kong --set service.exposeAdmin=true --set service.type=LoadBalance bitnami/kong
+# kubectl get svc
+# kubectl edit svc kong-kong
+# verificar type: LoadBalancer
+# KONGA
+# git clone https://github.com/pantsel/konga.git
+# cd konga/charts/konga/
+# helm install konga -f ./values.yaml ../konga --wait
+# kubectl edit svc konga
+# verificar type: LoadBalancer
+
 # Istio cluster com pelo menos 4 nós para fornecer recursos suficientes:
 #gcloud beta container clusters create $CLUSTER \
 #    --addons=Istio --istio-config=auth=MTLS_STRICT \
