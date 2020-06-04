@@ -195,7 +195,7 @@ echo "
 kind: Service
 apiVersion: v1
 metadata:
-  name: proxy-to-externo
+  name: svc-externo
 spec:
   ports:
   - protocol: TCP
@@ -209,16 +209,17 @@ echo '
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: proxy-from-k8s-to-externo
+  name: ingress-externo
   annotations:
     konghq.com/strip-path: "true"
+    konghq.com/preserve-host: "false"
 spec:
   rules:
   - http:
       paths:
       - path: /externo
         backend:
-          serviceName: proxy-to-externo
+          serviceName: svc-externo
           servicePort: 80
 ' | kubectl create -f -
 
