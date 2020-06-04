@@ -31,7 +31,7 @@ clear
 REGION=us-central1
 ZONE=${REGION}-b
 PROJECT=$(gcloud config get-value project)
-CLUSTER=gke-fiap
+CLUSTER=gke-tdc-floripa
 
 # Criar um cluster de dois nós:
 gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --cluster-version=latest
@@ -52,16 +52,14 @@ gcloud compute instances list
 
 # Rodar microservicos no Kubernetes
 git clone https://github.com/tonanuvem/k8s-slackpage.git
-cd k8s-slackpage
-git clone https://github.com/tonanuvem/k8s-slackpage.git
-cd k8s-slackpage
-kubectl create -f svc_fiap_gcp.yml
+kubectl create -f k8s-slackpage/deploy_fiap.yml
+kubectl create -f k8s-slackpage/svc_fiap_gcp.yml
 kubectl get svc
 
 # Executar a aplicação Sock Shop : A Microservice Demo Application
-kubectl create -f demo-weaveworks-socks.yaml
+kubectl create -f k8s-slackpage/demo-weaveworks-socks.yaml
 kubectl get svc -n sock-shop
-kubectl get all -n sock-shop
+#kubectl get all -n sock-shop
 
 ########## KONG
 
@@ -94,19 +92,43 @@ spec:
   rules:
   - http:
       paths:
-      - path: /foo
+      - path: /httpbin
         backend:
           serviceName: httpbin
           servicePort: 80
-      - path: /bar
+      - path: /echo
         backend:
           serviceName: echo
+          servicePort: 80
+      - path: /fiap
+        backend:
+          serviceName: fiap-service
+          servicePort: 80
+' | kubectl apply -f -
+
+# https://discuss.konghq.com/t/how-to-use-kongingress-to-redirect-to-different-backend-path/3848
+echo '
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: demo-loja
+  namespace: sock-shop
+  annotations:
+    konghq.com/strip-path: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /loja
+        backend:
+          serviceName: front-end
           servicePort: 80
 ' | kubectl apply -f -
 
 # Let's test these endpoints:
-curl -i $PROXY_IP/foo/status/200
-curl -i $PROXY_IP/bar
+curl -i $PROXY_IP/httpbin/status/200
+curl -i $PROXY_IP/echo
 
 ### https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-consumer-credential-resource.md
 # Let's add a KongPlugin resource for authentication on the httpbin service:
@@ -119,32 +141,72 @@ plugin: key-auth
 kubectl patch service httpbin -p '{"metadata":{"annotations":{"konghq.com/plugins":"httpbin-auth"}}}'
 
 # Let's test these endpoints: agora o httpbin deve receber HTTP/1.1 401 Unauthorized
-curl -i $PROXY_IP/foo/status/200
-curl -i $PROXY_IP/bar
+curl -i $PROXY_IP/httpbin/status/200
+curl -i $PROXY_IP/echo
 
 # Let's create a KongConsumer resource:
-$ echo "apiVersion: configuration.konghq.com/v1
+echo "apiVersion: configuration.konghq.com/v1
 kind: KongConsumer
 metadata:
-  name: harry
-username: harry" | kubectl apply -f -
+  name: usuario
+username: usuario" | kubectl apply -f -
 
 # Provision an API-key associated with this consumer so that we can pass the authentication
-kubectl create secret generic harry-apikey  \
+kubectl create secret generic usuario-apikey  \
   --from-literal=kongCredType=key-auth  \
-  --from-literal=key=my-sooper-secret-key
+  --from-literal=key=senha
   
 # Associate this API-key with the consumer we created previously.
 echo "apiVersion: configuration.konghq.com/v1
 kind: KongConsumer
 metadata:
-  name: harry
-username: harry
+  name: usuario
+username: usuario
 credentials:
-- harry-apikey" | kubectl apply -f -
+- usuario-apikey" | kubectl apply -f -
 
 # Use the API key to pass authentication:
-curl -I $PROXY_IP/foo -H 'apikey: my-sooper-secret-key'
+curl -I $PROXY_IP/httpbin -H 'apikey: senha'
+
+
+### https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-external-service.md
+### Expose an external application
+
+# Create a Kubernetes service
+echo "
+kind: Service
+apiVersion: v1
+metadata:
+  name: proxy-to-externo
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+  type: ExternalName
+  externalName: mockbin.org
+" | kubectl create -f -
+
+# Create an Ingress to expose the service at the path /foo
+echo '
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: proxy-from-k8s-to-externo
+  annotations:
+    konghq.com/strip-path: "true"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /externo
+        backend:
+          serviceName: proxy-to-externo
+          servicePort: 80
+' | kubectl create -f -
+
+# Test the service
+curl -i $PROXY_IP/externo
+
 
 ### https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/configure-acl-plugin.md
 ### Add JWT authentication to the service
@@ -169,52 +231,21 @@ spec:
   rules:
   - http:
       paths:
-      - path: /bar
+      - path: /echo
         backend:
           serviceName: echo
           servicePort: 80
 ' | kubectl apply -f -
 
 # Now it will require a valid JWT and the consumer for the JWT to be associate with the right ACL. HTTP/1.1 401 Unauthorized
-curl -i --data "foo=bar" -X POST $PROXY_IP/post
+curl -i $PROXY_IP/echo
 
-### https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-external-service.md
-### Expose an external application
 
-# Create a Kubernetes service
-echo "
-kind: Service
-apiVersion: v1
-metadata:
-  name: proxy-to-httpbin
-spec:
-  ports:
-  - protocol: TCP
-    port: 80
-  type: ExternalName
-  externalName: httpbin.org
-" | kubectl create -f -
 
-# Create an Ingress to expose the service at the path /foo
-echo '
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: proxy-from-k8s-to-httpbin
-  annotations:
-    konghq.com/strip-path: "true"
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /externo
-        backend:
-          serviceName: proxy-to-httpbin
-          servicePort: 80
-' | kubectl create -f -
+########### Excluir o cluster do GKE
 
-# Test the service
-curl -i $PROXY_IP/externo
+gcloud container clusters delete $CLUSTER --zone $ZONE
+
 
 
 
