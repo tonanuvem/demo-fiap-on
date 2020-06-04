@@ -63,6 +63,16 @@ kubectl create -f demo-weaveworks-socks.yaml
 kubectl get svc -n sock-shop
 kubectl get all -n sock-shop
 
+########## KONG
+
+pe "kubectl apply -f https://bit.ly/kong-ingress-dbless"
+pe "kubectl get svc -n kong"
+#export PROXY_IP=$(kubectl get service/servicename -o jsonpath='{.spec.clusterIP}')
+#export PROXY_IP=$(kubectl get svc <your-service> -o yaml | grep ip)
+export PROXY_IP=$(kubectl get -o jsonpath="{.status.loadBalancer.ingress[0].ip}" service -n kong kong-proxy)
+echo $PROXY_IP
+pe "curl -i $PROXY_IP"
+p ""
 # Executar a aplicação HTTPBIN
 kubectl apply -f https://bit.ly/k8s-httpbin
 
@@ -136,6 +146,41 @@ credentials:
 # Use the API key to pass authentication:
 curl -I $PROXY_IP/foo -H 'apikey: my-sooper-secret-key'
 
+# https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/configure-acl-plugin.md
+# Add JWT authentication to the service
+echo "
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: app-jwt
+plugin: jwt
+" | kubectl apply -f -
+
+# Let's associate the plugin to the Ingress rules we created earlier.
+echo '
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: demo-jwt
+  annotations:
+    plugins.konghq.com: app-jwt
+    konghq.com/strip-path: "false"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /bar
+        backend:
+          serviceName: echo
+          servicePort: 80
+' | kubectl apply -f -
+
+# Now it will require a valid JWT and the consumer for the JWT to be associate with the right ACL. HTTP/1.1 401 Unauthorized
+curl -i --data "foo=bar" -X POST $PROXY_IP/post
+
+
+
+
 # ---------
 
 # pe "docker pull nginx"
@@ -151,6 +196,7 @@ pe "kubectl apply -f https://bit.ly/kong-ingress-dbless"
 pe "kubectl get svc -n kong"
 export PROXY_IP=$(kubectl get service/servicename -o jsonpath='{.spec.clusterIP}')
 export PROXY_IP=$(kubectl get svc <your-service> -o yaml | grep ip)
+kubectl get -o jsonpath="{.status.loadBalancer.ingress[0].ip}" service -n kong kong-proxy
 pe "curl -i $PROXY_IP"
 p ""
 
