@@ -33,7 +33,7 @@ PROJECT=$(gcloud config get-value project)
 CLUSTER=gke-tdc-floripa
 
 # Criar um cluster de dois nós:
-gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --cluster-version=latest
+gcloud container clusters create ${CLUSTER} --num-nodes=3 --zone ${ZONE} --cluster-version=latest
 
 # Verificar as 2 instâncias e os pods do namespace kube-system:
 gcloud container clusters get-credentials $CLUSTER --zone $ZONE
