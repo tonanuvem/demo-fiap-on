@@ -42,6 +42,8 @@ gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --clust
 #
 # KONG
 # helm repo add bitnami https://charts.bitnami.com/bitnami
+# helm search repo bitnami
+# helm repo update
 # helm install kong --set service.exposeAdmin=true --set service.type=LoadBalance --namespace kong bitnami/kong
 # kubectl get svc
 # kubectl edit svc kong-kong
