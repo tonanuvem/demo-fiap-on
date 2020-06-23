@@ -36,19 +36,33 @@ CLUSTER=gke-tdc-floripa
 gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --cluster-version=latest
 
 # HELM
+# helm version
+# Verificar versão do Client e do Server (v2 ou v3)
+#
 # curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 # chmod 700 get_helm.sh
 # ./get_helm.sh
+#
+# helm version
+# Verificar versão do Client e do Server (v2 ou v3)
+#
 #
 # KONG
 # helm repo add bitnami https://charts.bitnami.com/bitnami
 # helm search repo bitnami
 # helm repo update
-# helm install kong --set service.exposeAdmin=true --set service.type=LoadBalance --namespace kong bitnami/kong
-# kubectl get svc
-# kubectl edit svc kong-kong
+# kubectl create ns kong
+# helm install kong --set service.exposeAdmin=true --set service.type=LoadBalancer --namespace kong bitnami/kong
+# kubectl get svc -n kong
+# export SERVICE_IP=$(kubectl get svc --namespace kong kong -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+# echo http://$SERVICE_IP:80
+# curl http://$SERVICE_IP:80
+## mensagem acima vai indicar que ainda não há rotas configuradas
+## se nao pegou o IP Externo, confirmar:
+# kubectl edit svc kong -n kong
 # verificar type: LoadBalancer
 # 
+## Informações extras de exemplos:
 #  Access the Kong proxy by using the following commands
 #    echo "Browse to http://127.0.0.1:8000"
 #    kubectl port-forward svc/my-release-kong 8080:80 &
@@ -68,7 +82,11 @@ gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --clust
 # git clone https://github.com/pantsel/konga.git
 # cd konga/charts/konga/
 # helm install konga -f ./values.yaml ../konga --namespace kong --wait
-# kubectl edit svc konga
+## ou
+# helm install konga -f ./values.yaml ../konga --set service.type=LoadBalancer --namespace kong --wait
+# kubectl get svc konga -n kong
+## se nao pegou o IP Externo, confirmar:
+# kubectl edit svc konga -n kong
 # verificar type: LoadBalancer
 # export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=konga,app.kubernetes.io/instance=konga" -o jsonpath="{.items[0].metadata.name}")
 # echo "Visit http://127.0.0.1:8080 to use your application"
