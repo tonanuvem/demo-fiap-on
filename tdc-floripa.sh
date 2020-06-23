@@ -24,7 +24,7 @@
 DEMO_PROMPT="\r${WHITE}andre@cloudshell:${CYAN}~ ${YELLOW}(demo-tdc-floripa)\w ${WHITE}$ "
 
 # hide the evidence
-clear && mkdir demo && cd demo && clear
+clear
 
 #	Definir as variáveis de ambiente:
 pe "REGION=us-central1"
