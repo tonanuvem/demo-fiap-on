@@ -21,7 +21,7 @@
 # see http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/bash-prompt-escape-sequences.html for escape sequences
 #
 # DEMO_PROMPT="\r${RED}[\H] ${GREEN}(local) ${CYAN}root@192.168.0.18 ${PURPLE}\w ${WHITE}$ "
-DEMO_PROMPT="\r${WHITE}andre@cloudshell:${CYAN}~ ${WHITE}$ "
+DEMO_PROMPT="\r${WHITE}$ "
 
 # hide the evidence
 clear
