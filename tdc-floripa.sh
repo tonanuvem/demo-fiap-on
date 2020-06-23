@@ -38,24 +38,28 @@ pe "gcloud container clusters create ${CLUSTER} --num-nodes=3 --zone ${ZONE} --c
 # Verificar as 2 instâncias e os pods do namespace kube-system:
 p ""
 pe "gcloud container clusters get-credentials $CLUSTER --zone $ZONE"
-pe "kubectl get pods -n kube-system"
+#pe "kubectl get pods -n kube-system"
 pe "gcloud compute instances list"
 
 # Rodar microservicos no Kubernetes
-p "cat 'vamos Executar a aplicação FIAP (slackpage):'"
+p "### vamos Executar a aplicação FIAP (slackpage):"
 pe "git clone https://github.com/tonanuvem/k8s-slackpage.git"
 pe "kubectl create -f k8s-slackpage/deploy_fiap.yml"
 pe "kubectl create -f k8s-slackpage/svc_fiap_gcp.yml"
 pe "kubectl get svc"
 
 # Executar a aplicação Sock Shop : A Microservice Demo Application
-p "cat 'vamos Executar a aplicação Sock Shop (Microservice Demo Application):'"
+p "### vamos Executar a aplicação Sock Shop (Microservice Demo Application):"
 pe "kubectl create -f k8s-slackpage/demo-weaveworks-socks.yaml"
 pe "kubectl get svc -n sock-shop"
 #kubectl get all -n sock-shop
 
+p "### vamos verificar se os serviços receberam IP Externo:"
+pe "kubectl get svc"
+pe "kubectl get svc -n sock-shop | grep front-end"
+
 # HELM
-p "cat 'vamos configurar o HELM:'"
+p "### vamos configurar o HELM:"
 pe "helm version"
 # Verificar versão do Client e do Server (v2 ou v3)
 #
@@ -78,7 +82,7 @@ pe "helm install kong --set service.exposeAdmin=true --set service.type=LoadBala
 pe "kubectl get svc -n kong"
 pe "export SERVICE_IP=$(kubectl get svc --namespace kong kong -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
 pe "echo http://$SERVICE_IP"
-pe "curl http://$SERVICE_IP"
+#pe "curl http://$SERVICE_IP"
 ## mensagem acima vai indicar que ainda não há rotas configuradas
 ## se nao pegou o IP Externo, confirmar:
 # kubectl edit svc kong -n kong
