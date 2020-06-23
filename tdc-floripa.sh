@@ -129,7 +129,8 @@ pe "curl -i -X GET --url http://$SERVICE_IP/mockbin/delay/2000 --header \"apikey
 
 ########### Excluir o cluster do GKE
 
-p "cat 'Excluir o cluster do GKE'"
+p "### Excluir o cluster do GKE"
+p " ### FIM ###"
 pe "gcloud container clusters delete $CLUSTER --zone $ZONE"
 
 
