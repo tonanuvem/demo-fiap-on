@@ -35,6 +35,23 @@ CLUSTER=gke-tdc-floripa
 # Criar um cluster de dois nós:
 gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --cluster-version=latest
 
+# Verificar as 2 instâncias e os pods do namespace kube-system:
+gcloud container clusters get-credentials $CLUSTER --zone $ZONE
+kubectl get pods -n kube-system
+gcloud compute instances list
+
+# Rodar microservicos no Kubernetes
+git clone https://github.com/tonanuvem/k8s-slackpage.git
+kubectl create -f k8s-slackpage/deploy_fiap.yml
+kubectl create -f k8s-slackpage/svc_fiap_gcp.yml
+kubectl get svc
+
+# Executar a aplicação Sock Shop : A Microservice Demo Application
+kubectl create -f k8s-slackpage/demo-weaveworks-socks.yaml
+kubectl get svc -n sock-shop
+#kubectl get all -n sock-shop
+
+
 # HELM
 # helm version
 # Verificar versão do Client e do Server (v2 ou v3)
@@ -88,9 +105,72 @@ gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --clust
 ## se nao pegou o IP Externo, confirmar:
 # kubectl edit svc konga -n kong
 # verificar type: LoadBalancer
+## Criar usuario admin, Logar e Clicar em Dashboard
+# Preencher os seguintes campos na configuração:
+#		Name 			= kong
+#		Kong Admin URL 	= http://kong:8001
+## Informações extras:
 # export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=konga,app.kubernetes.io/instance=konga" -o jsonpath="{.items[0].metadata.name}")
 # echo "Visit http://127.0.0.1:8080 to use your application"
 # kubectl port-forward $POD_NAME 8080:80
+
+
+# pe "docker pull nginx"
+pe "docker pull postgres:9.6"
+pe "docker pull kong"
+pe "docker pull pantsel/konga"
+
+pe "docker images"
+
+
+# KONGA
+pe "docker run -p 1337:1337 --network kong-net --name konga  -e \"TOKEN_SECRET=chavesecreta\" -d pantsel/konga"
+pe "docker ps"
+
+# Configurar KONGA
+p "#vamos configurar o KONGA... rodando na porta 1337"
+
+# Chamar as APIs
+pe "curl -i -X POST --url http://localhost:8001/services/ --data 'name=exemplo' --data 'url=http://mockbin.org'"
+p ""
+pe "curl -i -X POST --url http://localhost:8001/services/exemplo/routes --data 'hosts[]=mockbin.service'"
+p ""
+pe "curl -i -X POST --url http://localhost:8000/echo --header 'Host: mockbin.service' -d {\"chave\":\"valor\"}"
+p ""
+pe "curl -i -X POST --url http://localhost:8001/services/exemplo/plugins/ --data 'name=key-auth'"
+p ""
+pe "curl -i -X POST --url http://localhost:8000/delay/2000 --header 'Host: mockbin.service'"
+p ""
+pe "curl -i -X POST --url http://localhost:8001/consumers/ --data \"username=Aluno\""
+p ""
+pe "curl -i -X POST --url http://localhost:8001/consumers/Aluno/key-auth/ --data 'key=fiapsenha'"
+p ""
+pe "curl -i -X GET --url http://localhost:8000/delay/2000 --header 'Host: mockbin.service' --header \"apikey: fiapsenha\""
+
+
+#p "cat \"something you dont want to really run\""
+# put your demo awesomeness here
+#if [ ! -d "stuff" ]; then
+#  pe "mkdir stuff"
+#fi
+# show a prompt so as not to reveal our true nature after
+# the demo has concluded
+p ""
+
+
+
+########### Excluir o cluster do GKE
+
+gcloud container clusters delete $CLUSTER --zone $ZONE
+
+
+
+# ---------
+
+
+
+
+########## KONG Extra (sem usar Helm)
 
 # Istio cluster com pelo menos 4 nós para fornecer recursos suficientes:
 #gcloud beta container clusters create $CLUSTER \
@@ -101,23 +181,15 @@ gcloud container clusters create ${CLUSTER} --num-nodes=2 --zone ${ZONE} --clust
 #kubectl label namespace NAMESPACE istio-injection=enabled
 #kubectl get service -n istio-system#
 
-# Verificar as 2 instâncias e os pods do namespace kube-system:
-gcloud container clusters get-credentials $CLUSTER --zone $ZONE
-kubectl get pods -n kube-system
-gcloud compute instances list
+# KONG
 
-# Rodar microservicos no Kubernetes
-git clone https://github.com/tonanuvem/k8s-slackpage.git
-kubectl create -f k8s-slackpage/deploy_fiap.yml
-kubectl create -f k8s-slackpage/svc_fiap_gcp.yml
-kubectl get svc
-
-# Executar a aplicação Sock Shop : A Microservice Demo Application
-kubectl create -f k8s-slackpage/demo-weaveworks-socks.yaml
-kubectl get svc -n sock-shop
-#kubectl get all -n sock-shop
-
-########## KONG
+pe "kubectl apply -f https://bit.ly/kong-ingress-dbless"
+pe "kubectl get svc -n kong"
+export PROXY_IP=$(kubectl get service/servicename -o jsonpath='{.spec.clusterIP}')
+export PROXY_IP=$(kubectl get svc <your-service> -o yaml | grep ip)
+kubectl get -o jsonpath="{.status.loadBalancer.ingress[0].ip}" service -n kong kong-proxy
+pe "curl -i $PROXY_IP"
+p ""
 
 kubectl apply -f https://bit.ly/kong-ingress-dbless
 kubectl get svc -n kong
@@ -315,69 +387,9 @@ spec:
 # Now it will require a valid JWT and the consumer for the JWT to be associate with the right ACL. HTTP/1.1 401 Unauthorized
 curl -i $PROXY_IP/echo
 
-
-
-########### Excluir o cluster do GKE
-
-gcloud container clusters delete $CLUSTER --zone $ZONE
-
-
+# Informações Extras:
 
 # blue green e canary:
 # https://docs.konghq.com/2.0.x/loadbalancing/
 
 # ---------
-
-# pe "docker pull nginx"
-pe "docker pull postgres:9.6"
-pe "docker pull kong"
-pe "docker pull pantsel/konga"
-
-pe "docker images"
-
-# KONG
-
-pe "kubectl apply -f https://bit.ly/kong-ingress-dbless"
-pe "kubectl get svc -n kong"
-export PROXY_IP=$(kubectl get service/servicename -o jsonpath='{.spec.clusterIP}')
-export PROXY_IP=$(kubectl get svc <your-service> -o yaml | grep ip)
-kubectl get -o jsonpath="{.status.loadBalancer.ingress[0].ip}" service -n kong kong-proxy
-pe "curl -i $PROXY_IP"
-p ""
-
-# KONGA
-pe "docker run -p 1337:1337 --network kong-net --name konga  -e \"TOKEN_SECRET=chavesecreta\" -d pantsel/konga"
-pe "docker ps"
-
-# Configurar KONGA
-p "#vamos configurar o KONGA... rodando na porta 1337"
-
-# Chamar as APIs
-pe "curl -i -X POST --url http://localhost:8001/services/ --data 'name=exemplo' --data 'url=http://mockbin.org'"
-p ""
-pe "curl -i -X POST --url http://localhost:8001/services/exemplo/routes --data 'hosts[]=mockbin.service'"
-p ""
-pe "curl -i -X POST --url http://localhost:8000/echo --header 'Host: mockbin.service' -d {\"chave\":\"valor\"}"
-p ""
-pe "curl -i -X POST --url http://localhost:8001/services/exemplo/plugins/ --data 'name=key-auth'"
-p ""
-pe "curl -i -X POST --url http://localhost:8000/delay/2000 --header 'Host: mockbin.service'"
-p ""
-pe "curl -i -X POST --url http://localhost:8001/consumers/ --data \"username=Aluno\""
-p ""
-pe "curl -i -X POST --url http://localhost:8001/consumers/Aluno/key-auth/ --data 'key=fiapsenha'"
-p ""
-pe "curl -i -X GET --url http://localhost:8000/delay/2000 --header 'Host: mockbin.service' --header \"apikey: fiapsenha\""
-
-
-
-
-
-#p "cat \"something you dont want to really run\""
-# put your demo awesomeness here
-#if [ ! -d "stuff" ]; then
-#  pe "mkdir stuff"
-#fi
-# show a prompt so as not to reveal our true nature after
-# the demo has concluded
-p ""
