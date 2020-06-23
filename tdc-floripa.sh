@@ -130,6 +130,7 @@ pe "docker ps"
 # Configurar KONGA
 p "#vamos configurar o KONGA... rodando na porta 1337"
 
+# https://www.digitalocean.com/community/tutorials/uma-introducao-ao-servico-de-dns-do-kubernetes-pt
 # Chamar as APIs
 pe "echo $SERVICE_IP"
 p ""
@@ -153,15 +154,15 @@ pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/loja/routes --data 'p
 p ""
 pe "curl -i -X GET --url http://$SERVICE_IP/loja"
 p ""
-pe "curl -i -X POST --url http://localhost:8001/services/exemplo/plugins/ --data 'name=key-auth'"
+pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/exemplo/plugins/ --data 'name=key-auth'"
 p ""
-pe "curl -i -X POST --url http://localhost:8000/delay/2000 --header 'Host: mockbin.service'"
+pe "curl -i -X POST --url http://$SERVICE_IP:8000/delay/2000 --header 'Host: mockbin.service'"
 p ""
-pe "curl -i -X POST --url http://localhost:8001/consumers/ --data \"username=Aluno\""
+pe "curl -i -X POST --url http://$SERVICE_IP:8001/consumers/ --data \"username=TDC\""
 p ""
-pe "curl -i -X POST --url http://localhost:8001/consumers/Aluno/key-auth/ --data 'key=fiapsenha'"
+pe "curl -i -X POST --url http://$SERVICE_IP:8001/consumers/TDC/key-auth/ --data 'key=senha'"
 p ""
-pe "curl -i -X GET --url http://localhost:8000/delay/2000 --header 'Host: mockbin.service' --header \"apikey: fiapsenha\""
+pe "curl -i -X GET --url http://$SERVICE_IP:8000/mockbin/delay/2000 --header \"apikey: senha\""
 
 
 #p "cat \"something you dont want to really run\""
