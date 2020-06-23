@@ -108,44 +108,25 @@ pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/exemplo/routes --data
 pe "curl -i -X GET --url http://$SERVICE_IP/mockbin/echo -d {"chave":"valor"}"
 p ""
 pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/ --data 'name=fiap' --data 'url=http://fiap-service.default.svc.cluster.local'"
-p ""
 pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/fiap/routes --data 'paths[]=/fiap'"
-p ""
 pe "curl -i -X GET --url http://$SERVICE_IP/fiap"
 p ""
 pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/ --data 'name=loja' --data 'url=http://front-end.sock-shop.svc.cluster.local'"
-p ""
 pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/loja/routes --data 'paths[]=/'"
-p ""
 pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/loja/routes --data 'paths[]=/loja'"
-p ""
 pe "curl -i -X GET --url http://$SERVICE_IP/loja"
 p ""
 pe "curl -i -X POST --url http://$SERVICE_IP:8001/services/exemplo/plugins/ --data 'name=key-auth'"
-p ""
 pe "curl -i -X POST --url http://$SERVICE_IP/mockbin/delay/2000"
-p ""
 pe "curl -i -X POST --url http://$SERVICE_IP:8001/consumers/ --data \"username=TDC\""
-p ""
 pe "curl -i -X POST --url http://$SERVICE_IP:8001/consumers/TDC/key-auth/ --data 'key=senha'"
-p ""
 pe "curl -i -X GET --url http://$SERVICE_IP/mockbin/delay/2000 --header \"apikey: senha\""
-
-
-#p "cat \"something you dont want to really run\""
-# put your demo awesomeness here
-#if [ ! -d "stuff" ]; then
-#  pe "mkdir stuff"
-#fi
-# show a prompt so as not to reveal our true nature after
-# the demo has concluded
-p ""
-
 
 
 ########### Excluir o cluster do GKE
 
-gcloud container clusters delete $CLUSTER --zone $ZONE
+p "cat 'Excluir o cluster do GKE'"
+pe "gcloud container clusters delete $CLUSTER --zone $ZONE"
 
 
 # ---------
